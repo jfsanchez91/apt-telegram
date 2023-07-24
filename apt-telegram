@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# verify root
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root."
+    exit 1
+fi
+
+# verify required env variables
+#TELEGRAM_BOT_TOKEN='xxxxxxx:xxxxxxxxxxxx-xxxxxx-xxxxxx-xxxxxxxxxxxx'
+#TELEGRAM_CHAT_ID='xxxxxxxxxx' # personal Telegram id
+if [ -z "${TELEGRAM_BOT_TOKEN}" ]; then
+    echo "Please set the 'TELEGRAM_BOT_TOKEN' value."
+    exit 1
+fi
+if [ -z "${TELEGRAM_CHAT_ID}" ]; then
+    echo "Please set the 'TELEGRAM_CHAT_ID' value."
+    exit 1
+fi
+
+function send_telegram() {
+    local msg="$*"
+    curl -sS -X POST -H "Content-Type: application/json" \
+        -d "{\"chat_id\": \"$TELEGRAM_CHAT_ID\", \"text\": \"$msg\", \"disable_notification\": false}" \
+        "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" >/dev/null
+}
+
+function log() {
+    local msg="$*"
+    logger $msg
+    send_telegram $msg
+}
+
+function upgrade() {
+    apt update
+    apt upgrade --yes
+    apt autoremove --yes
+}
+
+log "⚒ Running system upgrade."
+upgrade
+log "⚒ System upgrade done."
